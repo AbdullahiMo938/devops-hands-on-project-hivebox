@@ -35,7 +35,7 @@ app.get("/temperature", async (req, res) => {
 
 
 
-//res.json({data})
+res.json({averageTemp})
 
 });
 
