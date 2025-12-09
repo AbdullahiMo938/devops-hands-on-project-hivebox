@@ -44,20 +44,22 @@ jobs:
 
       - name: Test Version endpoint
         run: |
-            # 1. Call the endpoint and capture the output
-            RESPONSE=$(curl -s http://localhost:3000/version)
-            
-            # 2. Print the response so we can see it in the logs
-            echo "Server responded with: $RESPONSE"
-            
-            # 3. Check if the response contains "1.0.0" (or your current version)
-            if [[ "$RESPONSE" == *"1.0.0"* ]]; then
-              echo "✅ Version check passed!"
-              exit 0
-            else
-              echo "❌ Version check failed! Expected '1.0.0' but got '$RESPONSE'"
-              exit 1
-            fi
+          # 1. Extract the expected version from package.json
+          EXPECTED_VERSION=$(jq -r .version package.json)
+          echo "Target version from package.json: $EXPECTED_VERSION"
+          
+          # 2. Call the endpoint
+          RESPONSE=$(curl -s http://localhost:3000/version)
+          echo "Actual server response: $RESPONSE"
+          
+          # 3. Compare them
+          if [[ "$RESPONSE" == *"$EXPECTED_VERSION"* ]]; then
+            echo "✅ Success! The endpoint matches package.json."
+            exit 0
+          else
+            echo "❌ Mismatch! Expected '$EXPECTED_VERSION' inside response."
+            exit 1
+          fi
       - name: Debug - Show Container Logs
         run: docker logs test-container
 
