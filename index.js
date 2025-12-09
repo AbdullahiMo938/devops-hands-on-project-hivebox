@@ -13,7 +13,11 @@ app.get("/version", (req, res) => {
 });
 
 app.get("/temperature", async (req, res) => {
-    const resp = await fetch("https://api.opensensemap.org/boxes/606b20a3b8e635001b80a306");
+    // 1. Read from the environment, or use a default string if missing
+    const SENSEBOX_ID = process.env.SENSEBOX_ID || "606b20a3b8e635001b80a306";
+
+// 2. Use the variable in the URL
+    const resp = await fetch(`https://api.opensensemap.org/boxes/${SENSEBOX_ID}`);
     const senseBoxData = await resp.json();
 
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
