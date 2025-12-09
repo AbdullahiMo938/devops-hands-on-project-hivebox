@@ -36,6 +36,30 @@ jobs:
       - name: Build Docker Image
         run: docker build . -t hivebox:test
 
+      - name: Run Docker Container 
+        run: docker run -d -p 3000:3000 test-container hivebox:test
+
+      - name: Wait for App to start
+        run: sleep 10
+
+      - name: Test Version endpoint
+        run: |
+            # 1. Call the endpoint and capture the output
+            RESPONSE=$(curl -s http://localhost:3000/version)
+            
+            # 2. Print the response so we can see it in the logs
+            echo "Server responded with: $RESPONSE"
+            
+            # 3. Check if the response contains "1.0.0" (or your current version)
+            if [[ "$RESPONSE" == *"1.0.0"* ]]; then
+              echo "✅ Version check passed!"
+              exit 0
+            else
+              echo "❌ Version check failed! Expected '1.0.0' but got '$RESPONSE'"
+              exit 1
+            fi
+
+
       # - name: OpenSSf Scorecard
       #   uses: ossf/scorecard-action@v2.4.0
       #   with:
