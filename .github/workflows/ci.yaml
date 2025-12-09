@@ -47,14 +47,14 @@ jobs:
 
       - name: Simple version checkout
         run: |
-        #1 start container in the back
-        docker run -d -p 3000:3000 --name test-container hivebox:test
+            #1 start container in the back
+            docker run -d -p 3000:3000 --name test-container hivebox:test
 
-        #2 wait a bit
-        sleep 5
+            #2 wait a bit
+            sleep 5
 
-        #Ask for the version
-        curl -f http://localhost:3000/version 
+            #Ask for the version
+            curl -f http://localhost:3000/version 
 
 
       # - name: Test Version endpoint
