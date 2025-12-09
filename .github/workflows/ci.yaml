@@ -50,7 +50,12 @@ jobs:
             #0 get rid of old container if there
             docker rm -f test-container || true
             #1 start container in the back
-            docker run -d -p 3000:3000 --name test-container hivebox:test
+            # 1. start container with the Environment Variable
+            docker run -d \
+            -p 3000:3000 \
+            -e SENSEBOX_ID="606b20a3b8e635001b80a306" \
+            --name test-container \
+            hivebox:test
 
             #2 wait a bit
             sleep 5
