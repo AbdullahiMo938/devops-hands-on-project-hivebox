@@ -14,7 +14,7 @@ app.get("/version", (req, res) => {
 
 app.get("/temperature", async (req, res) => {
     const resp = await fetch("https://api.opensensemap.org/boxes/606b20a3b8e635001b80a306");
-    const data = await resp.json();
+    const senseBoxData = await resp.json();
 
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
