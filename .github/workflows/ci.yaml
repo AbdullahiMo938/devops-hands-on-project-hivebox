@@ -58,6 +58,8 @@ jobs:
               echo "❌ Version check failed! Expected '1.0.0' but got '$RESPONSE'"
               exit 1
             fi
+      - name: Debug - Show Container Logs
+        run: docker logs test-container
 
 
       # - name: OpenSSf Scorecard
