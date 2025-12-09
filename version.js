@@ -1,2 +1,2 @@
 const APP_VERSION = "0.0.1";
-module.exports = APP_VERSION;
+export default APP_VERSION;
