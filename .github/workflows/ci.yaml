@@ -37,7 +37,7 @@ jobs:
         run: docker build . -t hivebox:test
 
       - name: Run Docker Container 
-        run: docker run -d -p 3000:3000 test-container hivebox:test
+        run: docker run -d -p 3000:3000 --name test-container hivebox:test
 
       - name: Wait for App to start
         run: sleep 10
