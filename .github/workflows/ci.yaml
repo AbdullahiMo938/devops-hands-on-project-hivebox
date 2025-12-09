@@ -47,6 +47,8 @@ jobs:
 
       - name: Simple version checkout
         run: |
+            #0 get rid of old container if there
+            docker rm -f test-container || true
             #1 start container in the back
             docker run -d -p 3000:3000 --name test-container hivebox:test
 
