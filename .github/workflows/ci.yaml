@@ -43,7 +43,7 @@ jobs:
       #     results_format : sarif
       #     publish_results : true
     scorecard:
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
     permissions:
       # specific permissions needed for scorecard
       security-events: write
