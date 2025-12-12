@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"No tests specified yet\" && exit 0",
     "prepare": "husky install",
-    "lint": "eslint ." , 
+    "lint": "eslint .",
     "start": "node server.js"
   },
   "keywords": [],
@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "express": "^5.1.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "prom-client": "^15.1.3"
   }
 }
