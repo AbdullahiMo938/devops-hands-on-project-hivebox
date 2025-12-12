@@ -42,8 +42,8 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@v4
         env:
           # We need to pass the Token and Host URL here
-          SONAR_TOKEN: ${{ secrets.c13796142a13e9dfd998fb0db79ddcb4a1651283 }}
-          SONAR_HOST_URL: ${{ secrets.https://sonarcloud.io }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
