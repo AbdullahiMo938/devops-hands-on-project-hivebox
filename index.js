@@ -1,4 +1,4 @@
-/* global process */
+
 import express from "express";
 import fetch from "node-fetch";
 import APP_VERSION from "./version.js";
