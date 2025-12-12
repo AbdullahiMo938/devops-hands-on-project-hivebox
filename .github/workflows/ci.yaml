@@ -40,6 +40,9 @@ jobs:
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v4
+        with:
+          projectKey: 'AbdullahiMo938_devops-hands-on-project-hivebox' 
+          organization: 'abdullahimo938'
         env:
           # We need to pass the Token and Host URL here
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
