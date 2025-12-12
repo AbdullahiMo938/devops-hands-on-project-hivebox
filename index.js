@@ -1,6 +1,6 @@
 
 import express from "express";
-import fetch from "node-fetch";
+// import fetch from "node-fetch";
 import APP_VERSION from "./version.js";
 import * as client from 'prom-client';
 const app = express();
