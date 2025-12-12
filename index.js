@@ -12,10 +12,10 @@ function printversion() {
 console.log(APP_VERSION)
 }
 printversion();
-
 app.get("/version", (req, res) => {
   res.send(`API running. Version: ${APP_VERSION}`);
 });
+
 
 app.get("/temperature", async (req, res) => {
     // 1. Read from the environment, or use a default string if missing
