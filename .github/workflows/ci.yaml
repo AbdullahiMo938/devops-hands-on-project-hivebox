@@ -86,33 +86,53 @@ jobs:
             curl -f http://localhost:3000/version 
 
 
-      # - name: Test Version endpoint
-      #   run: |
-      #     # 1. Extract the expected version from package.json
-      #     EXPECTED_VERSION=$(jq -r .version package.json)
-      #     echo "Target version from package.json: $EXPECTED_VERSION"
-          
-      #     # 2. Call the endpoint
-      #     RESPONSE=$(curl -s http://localhost:3000/version)
-      #     echo "Actual server response: $RESPONSE"
-          
-      #     # 3. Compare them
-      #     if [[ "$RESPONSE" == *"$EXPECTED_VERSION"* ]]; then
-      #       echo "✅ Success! The endpoint matches package.json."
-      #       exit 0
-      #     else
-      #       echo "❌ Mismatch! Expected '$EXPECTED_VERSION' inside response."
-      #       exit 1
-      #     fi
-      
+release-to-registry:
+  # This job must wait for the build/test job to succeed
+  needs: [build-and-test] 
+  
+  
+  permissions:
+    packages: write
+    contents: read
+    
+  runs-on: ubuntu-latest
+  steps:
+    - name: 1. Checkout Code
+      uses: actions/checkout@v4
+
+    - name: 2. Get Version Number
+      id: get_version
+      # Uses jq to reliably extract the version and save it as an output variable
+      run: echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
+    - name: 3. Login to GitHub Container Registry (GHCR)
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        # Use the built-in, secure GITHUB_TOKEN for password
+        username: ${{ github.actor }} 
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 4. Tag and Push Docker Image
+      env:
+        # Define base path once for clarity: ghcr.io/user/repo/hivebox
+        FULL_IMAGE_NAME: ghcr.io/${{ github.repository }}/hivebox
+        # Reference the version from the output of step 2
+        TAG_VERSION: ${{ steps.get_version.outputs.VERSION }}
+      run: |
+        # Tag the local image (hivebox:test) with the fully qualified version tag
+        docker tag hivebox:test ${{ env.FULL_IMAGE_NAME }}:${{ env.TAG_VERSION }}
+        
+        # Tag the same image with 'latest'
+        docker tag hivebox:test ${{ env.FULL_IMAGE_NAME }}:latest
+
+        # Push the specific version tag
+        docker push ${{ env.FULL_IMAGE_NAME }}:${{ env.TAG_VERSION }}
+        
+        # Push the 'latest' tag
+        docker push ${{ env.FULL_IMAGE_NAME }}:latest
 
 
-      # - name: OpenSSf Scorecard
-      #   uses: ossf/scorecard-action@v2.4.0
-      #   with:
-      #     results_file: results.sarif
-      #     results_format : sarif
-      #     publish_results : true
   scorecard:
     runs-on: ubuntu-latest
     permissions:
