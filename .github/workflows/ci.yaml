@@ -58,6 +58,17 @@ jobs:
       - name: Build Docker Image
         run: docker build . -t hivebox:test
 
+        # Save the image as a tarball
+      - name: Save Docker image
+        run: docker save -o hivebox.tar hivebox:test
+
+    # Upload the tarball as an artifact
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: hivebox.tar
+
       - name: Run Docker Container 
         run: docker run -d -p 3000:3000 --name test-container hivebox:test
 
@@ -104,7 +115,18 @@ jobs:
         id: get_version
         # Uses jq to reliably extract the version and save it as an output variable
         run: echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+      
+      
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: .
 
+      - name: Load Docker image
+        run: docker load -i hivebox.tar
+      
+      
       - name: 3. Login to GitHub Container Registry (GHCR)
         uses: docker/login-action@v3
         with:
