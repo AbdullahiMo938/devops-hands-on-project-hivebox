@@ -120,17 +120,19 @@ jobs:
           # Reference the version from the output of step 2
           TAG_VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
-          # Tag the local image (hivebox:test) with the fully qualified version tag
-          docker tag hivebox:test ${{ env.FULL_IMAGE_NAME }}:${{ env.TAG_VERSION }}
+          # 1. Capture the mixed-case name
+          IMAGE_ID=ghcr.io/${{ github.repository }}/hivebox
           
-          # Tag the same image with 'latest'
-          docker tag hivebox:test ${{ env.FULL_IMAGE_NAME }}:latest
+          # 2. Convert it to lowercase
+          IMAGE_ID=${IMAGE_ID,,}
+          
+          # 3. Tag the image (Your command!)
+          docker tag hivebox:test $IMAGE_ID:${{ env.TAG_VERSION }}
+          docker tag hivebox:test $IMAGE_ID:latest
 
-          # Push the specific version tag
-          docker push ${{ env.FULL_IMAGE_NAME }}:${{ env.TAG_VERSION }}
-          
-          # Push the 'latest' tag
-          docker push ${{ env.FULL_IMAGE_NAME }}:latest
+          # 4. Push using the lowercase ID
+          docker push $IMAGE_ID:${{ env.TAG_VERSION }}
+          docker push $IMAGE_ID:latest
 
 
   scorecard:
