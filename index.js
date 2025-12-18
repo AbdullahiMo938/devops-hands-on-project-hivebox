@@ -3,6 +3,12 @@ import express from "express";
 // import fetch from "node-fetch";
 import APP_VERSION from "./version.js";
 import * as client from 'prom-client';
+import 'dotenv/config';
+
+// Now you can access your variables
+console.log(process.env.AWS_S3_BUCKET);
+
+
 const app = express();
 
 const register  = new client.Registry();
