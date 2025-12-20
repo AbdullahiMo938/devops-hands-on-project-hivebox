@@ -31,6 +31,18 @@ const app = express();
 
 const register  = new client.Registry();
 client.collectDefaultMetrics({ register})
+const metrics = await register.metrics();
+  const archiveCounter = new client.Counter({
+  name: 'hivebox_archive_total',
+  help: 'Count of archive operations',
+  labelNames: ['result'] , // 'success' or 'failure'
+  registers: [register]
+});
+ const tempGauge = new client.Gauge({
+  name: 'hivebox_last_recorded_temp',
+  help: 'The last temperature value placed in the cache' ,
+  registers: [register]
+});
 
 function printversion() {
 console.log(APP_VERSION)
@@ -94,12 +106,14 @@ app.get("/temperature", async (req, res) => {
 
 res.json(result);
 
+tempGauge.set(result.averageTemp);
 
 });
 app.get("/metrics", async(req,res) => {
   res.setHeader('Content-Type', register.contentType);
+  
   const metrics = await register.metrics();
-  res.end(metrics);
+   res.end(metrics);
 });
 async function archiveToStorage() {
   const data = await valkey.get("latest_temp");
@@ -117,6 +131,8 @@ async function archiveToStorage() {
       Body: data
     }));
 
+    archiveCounter.inc({ result: 'success' });
+
     // Printing our success message
     console.log(` Success: Object stored as ${fileName}`);
     return { status: "success", file: fileName };
@@ -126,6 +142,7 @@ async function archiveToStorage() {
     console.error(" Failed to store object:", error);
     return { status: "error", message: error.message };
   }
+  
 }
 
 
