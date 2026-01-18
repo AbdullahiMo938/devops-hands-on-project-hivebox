@@ -164,6 +164,42 @@ cron.schedule('*/5 * * * *', async () => {
   await archiveToStorage();
 }); // 👈 The cron job sits on its own
 
+// 1. Function to check if the sensor is reachable
+async function isSensorAccessible() {
+  try {
+    const response = await fetch(`https://api.opensensemap.org/boxes/${SENSEBOX_ID}/data/${SENSOR_ID}`, { 
+        signal: AbortSignal.timeout(3000) 
+    });
+    return response.ok; 
+  } catch (error) {
+    return false; 
+  }
+}
+
+// 2. Function to check if the data in Valkey is fresh
+async function isCacheFresh() {
+  const lastUpdate = await valkey.get("last_successful_fetch");
+  if (!lastUpdate) return false;
+
+  const ageInMs = Date.now() - parseInt(lastUpdate);
+  const fiveMinutes = 5 * 60 * 1000;
+  
+  return ageInMs < fiveMinutes;
+}
+
+// 3. The actual endpoint route
+app.get('/readyz', async (req, res) => {
+  const sensorOk = await isSensorAccessible();
+  const cacheOk = await isCacheFresh();
+
+  if (!sensorOk && !cacheOk) {
+    return res.status(503).send("Service Unavailable: Sensor down and cache stale.");
+  }
+
+  res.status(200).send("OK");
+});
+
+
 app.listen(3000, () => console.log("🚀 Server running on port 3000"));
 export default app;
 
