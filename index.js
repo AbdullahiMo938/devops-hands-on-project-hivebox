@@ -31,7 +31,7 @@ const app = express();
 
 const register  = new client.Registry();
 client.collectDefaultMetrics({ register})
-const metrics = await register.metrics();
+// const metrics = await register.metrics();
   const archiveCounter = new client.Counter({
   name: 'hivebox_archive_total',
   help: 'Count of archive operations',
@@ -154,7 +154,7 @@ app.get("/store", async (req, res) => {
       details: result
     });
   } catch (error) {
-    res.status(500).json({ error: "failed to run manual archive" });
+    res.status(500).json , console.error("Operation failed:", error.message);
   }
 }); 
 
@@ -167,11 +167,12 @@ cron.schedule('*/5 * * * *', async () => {
 // 1. Function to check if the sensor is reachable
 async function isSensorAccessible() {
   try {
-    const response = await fetch(`https://api.opensensemap.org/boxes/${SENSEBOX_ID}/data/${SENSOR_ID}`, { 
+    const response = await fetch(`https://api.opensensemap.org/boxes/data/606b20a3b8e635001b80a309`, { 
         signal: AbortSignal.timeout(3000) 
     });
     return response.ok; 
   } catch (error) {
+    console.error(" Failed " ,  error.message);
     return false; 
   }
 }
