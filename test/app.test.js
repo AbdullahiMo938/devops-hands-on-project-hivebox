@@ -1,23 +1,39 @@
 import request from 'supertest';
 import app from '../index.js';
 import { jest } from '@jest/globals';
-import { app, archiveJob } from '../index.js';
+import {  archiveJob, valkey , server } from '../index.js';
 
-jest.mock('iovalkey', () => {
-  return jest.fn().mockImplementation(() => ({
-    set: jest.fn().mockResolvedValue('OK'),
-    get: jest.fn().mockResolvedValue(null),
-    on: jest.fn(), 
-    quit: jest.fn().mockResolvedValue('OK'),
-  }));
-});
+
+// jest.unstable_mockModule('redis', () => ({
+//   createClient: jest.fn().mockImplementation(() => ({
+//     set: jest.fn().mockResolvedValue('OK'),
+//     get: jest.fn().mockResolvedValue(null),
+//     on: jest.fn(),
+//     connect: jest.fn().mockResolvedValue(), // Redis v4+ needs .connect()
+//     quit: jest.fn().mockResolvedValue('OK'),
+//   })),
+// }));
+
+
+
 
 
 global.fetch = jest.fn();
 
 // 3. This is the "Cleanup" that stops the hanging process
 afterAll(async () => {
-  archiveJob.stop(); 
+  // 1. Stop the cron job
+  archiveJob.stop();
+
+  // 2. Close the Express server 🛑
+  if (server) {
+    await new Promise((resolve) => server.close(resolve));
+  }
+
+  // 3. Disconnect from Valkey 🔌
+  if (valkey) {
+    await valkey.quit();
+  }
 });
 
 test('version check' , async () => {
