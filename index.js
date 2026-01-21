@@ -7,7 +7,7 @@ import 'dotenv/config';
 import Redis from "ioredis";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-const valkey = new Redis({
+export const valkey = new Redis({
   host : "localhost",
   port: 6379
 });
@@ -159,10 +159,10 @@ app.get("/store", async (req, res) => {
 }); 
 
 
-cron.schedule('*/5 * * * *', async () => {
+export const archiveJob = cron.schedule('*/5 * * * *', async () => {
   console.log("⏰ Running scheduled archive...");
   await archiveToStorage();
-}); // 👈 The cron job sits on its own
+}); // 
 
 // 1. Function to check if the sensor is reachable
 async function isSensorAccessible() {
@@ -201,7 +201,9 @@ app.get('/readyz', async (req, res) => {
 });
 
 
-app.listen(3000, () => console.log("🚀 Server running on port 3000"));
+export const server = app.listen(3000, () => {
+  console.log("🚀 Server running on port 3000");
+  });
 export default app;
 
 
