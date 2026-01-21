@@ -6,15 +6,22 @@ on:
   pull_request:
     branches: ["main"]
 
-jobs:
-  build-and-test:
+jjobs:
+  test:
     runs-on: ubuntu-latest
-# # permissions for ossf
-#     permissions:
-#       contents: read
-#       security-events: write
-#       id-token: write
 
+    # 1. This is where the service container lives
+    services:
+      valkey:
+        image: valkey/valkey:latest
+        ports:
+          - 6379:6379
+        # 2. This ensures the service is ready before steps run
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
