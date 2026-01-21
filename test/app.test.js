@@ -1,14 +1,29 @@
 import request from 'supertest';
 import app from '../index.js';
 import { jest } from '@jest/globals';
+import { app, archiveJob } from '../index.js';
+
+jest.mock('iovalkey', () => {
+  return jest.fn().mockImplementation(() => ({
+    set: jest.fn().mockResolvedValue('OK'),
+    get: jest.fn().mockResolvedValue(null),
+    on: jest.fn(), 
+    quit: jest.fn().mockResolvedValue('OK'),
+  }));
+});
+
+
 global.fetch = jest.fn();
 
+// 3. This is the "Cleanup" that stops the hanging process
+afterAll(async () => {
+  archiveJob.stop(); 
+});
+
 test('version check' , async () => {
-const response =  await request(app).get('/version');
-expect(response.text).toContain("API running");
-})
-test('1 + 1 equals 2', () => {
-  expect(1 + 1).toBe(2);
+  const response = await request(app).get('/version');
+  expect(response.status).toBe(200); // Check the status too!
+  expect(response.text).toContain("API running");
 });
 
 const fakeData = [
