@@ -8,9 +8,12 @@ import Redis from "ioredis";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 export const valkey = new Redis({
-  host : "localhost",
-  port: 6379
+  // 1. Look for REDIS_HOST in the environment
+  // 2. Fall back to "localhost" if it's missing
+  host : process.env.REDIS_HOST || "localhost", 
+  port: process.env.REDIS_PORT || 6379
 });
+
 const s3 = new S3Client({
   endpoint: "http://localhost:9000",
   region: "us-east-1",

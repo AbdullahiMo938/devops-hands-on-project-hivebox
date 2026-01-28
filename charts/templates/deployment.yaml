@@ -12,6 +12,8 @@ spec:
       labels:
         app: hivebox
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: hivebox
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

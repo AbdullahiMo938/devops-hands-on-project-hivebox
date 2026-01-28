@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: valkey-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: valkey
+  template:
+    metadata:
+      labels:
+        app: valkey
+    spec:
+      containers:
+      - name: valkey
+        image: valkey/valkey:8.0 # Using the official Valkey image
+        ports:
+        - containerPort: 6379

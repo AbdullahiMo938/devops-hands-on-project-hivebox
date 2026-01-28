@@ -48,7 +48,7 @@ jobs:
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v4
         with:
-          # --- ADD THESE TWO LINES ---
+         
           projectKey: 'AbdullahiMo938_devops-hands-on-project-hivebox' 
           organization: 'abdullahimo938'
           # ---------------------------
@@ -63,7 +63,12 @@ jobs:
           dockerfile: Dockerfile
       
       - name: Build Docker Image
-        run: docker build . -t hivebox:test
+        run: docker build . -t hivebox:${{ github.sha }}
+
+      - name: Deploy to Kubernetes
+        run: |
+          helm upgrade --install hivebox ./charts/hivebox \
+          --set image.tag=${{ github.sha }}  
 
         # Save the image as a tarball
       - name: Save Docker image

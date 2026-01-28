@@ -15,11 +15,25 @@ spec:
       containers:
       - name: hivebox-container
        
-        image: localhost:5000/hivebox:test
+        image: localhost:5000/hivebox:test:v2
+        envFrom:
+        - configMapRef:
+            name: hivebox-config
         
         
-        # imagePullPolicy: Never 
+        imagePullPolicy: Always
         
         ports:
         
         - containerPort: 3000
+
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+
+          
+        
