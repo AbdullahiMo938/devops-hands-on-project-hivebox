@@ -1,20 +1,21 @@
 apiVersion: v1
 kind: Service
 metadata:
-  # This gives the service a name like "hivebox-service"
-  name: {{ include "hivebox.fullname" . }}
+  # No curly braces needed for a static name
+  name: hivebox-service
   labels:
-    # Standard labels so other tools can identify this resource
-    {{- include "hivebox.labels" . | nindent 4 }}
+    # A simple label for organization
+    app: hivebox
 spec:
-  # 'type' determines how the service is reached (ClusterIP, NodePort, or LoadBalancer)
+  # This comes from your values.yaml
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}      # The "Front Door" port (usually 80)
-      targetPort: http                     # This matches the 'name' of the port in your Deployment
+    - port: {{ .Values.service.port }}
+      # This name must match the 'containerPort' name in your Deployment
+      targetPort: 3000 
       protocol: TCP
       name: http
   selector:
-    # This is the most important part! 
-    # It tells the Service: "Send traffic to any Pod with these labels."
-    {{- include "hivebox.selectorLabels" . | nindent 4 }}
+    # This is the "magnet" that finds your pods. 
+    # It MUST match the labels in your Deployment.yaml.
+    app: hivebox
