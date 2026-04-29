@@ -46,7 +46,7 @@ jobs:
         run: npm test
 
       - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@v5
+        uses: sonarsource/sonarqube-scan-action@v6
         with:
          
           projectKey: 'AbdullahiMo938_devops-hands-on-project-hivebox' 
