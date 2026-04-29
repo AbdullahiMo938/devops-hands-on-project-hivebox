@@ -238,7 +238,7 @@ app.get("/store", async (req, res) => {
 // ==========================================
 
 // Every 5 minutes
-cron.schedule("*/5 * * * *", async () => {
+const archiveJob = cron.schedule("*/5 * * * *", async () => {
   console.log("⏰ Running scheduled archive...");
   await archiveToStorage();
 });
@@ -248,7 +248,7 @@ cron.schedule("*/5 * * * *", async () => {
 // ==========================================
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 HiveBox Global API running on port ${PORT}`);
 });
 
@@ -256,3 +256,4 @@ app.listen(PORT, () => {
 // 10. Export App
 // ==========================================
 export default app;
+export { archiveJob, valkey, server };

@@ -1,83 +1,67 @@
-import request from 'supertest';
-import app from '../src/index.js';
 import { jest } from '@jest/globals';
-import {  archiveJob, valkey , server } from '../index.js';
+import request from 'supertest';
 
+// 1. MOCK IOREDIS (Must come BEFORE importing 'app')
+// This prevents the ENOTFOUND valkey-service error
+jest.unstable_mockModule('ioredis', () => {
+  return {
+    default: class {
+      on() { return this; }
+      get() { return Promise.resolve(null); }
+      set() { return Promise.resolve('OK'); }
+      quit() { return Promise.resolve('OK'); }
+    }
+  };
+});
 
-// jest.unstable_mockModule('redis', () => ({
-//   createClient: jest.fn().mockImplementation(() => ({
-//     set: jest.fn().mockResolvedValue('OK'),
-//     get: jest.fn().mockResolvedValue(null),
-//     on: jest.fn(),
-//     connect: jest.fn().mockResolvedValue(), // Redis v4+ needs .connect()
-//     quit: jest.fn().mockResolvedValue('OK'),
-//   })),
-// }));
+// 2. IMPORT APP & EXPORTS
+// We import these AFTER the mock is defined
+const { default: app, archiveJob, valkey, server } = await import('../src/index.js');
 
-
-
-
-
+// 3. MOCK GLOBAL FETCH
 global.fetch = jest.fn();
 
-// 3. This is the "Cleanup" that stops the hanging process
+// 4. CLEANUP AFTER ALL TESTS
 afterAll(async () => {
-  // 1. Stop the cron job
-  archiveJob.stop();
+  // Stop the cron job
+  if (archiveJob) archiveJob.stop();
 
-  // 2. Close the Express server 🛑
+  // Close the Express server
   if (server) {
     await new Promise((resolve) => server.close(resolve));
   }
 
-  // 3. Disconnect from Valkey 🔌
+  // Disconnect from Valkey (the mocked quit)
   if (valkey) {
     await valkey.quit();
   }
 });
 
-test('version check' , async () => {
+// ==========================================
+// TESTS
+// ==========================================
+
+test('version check', async () => {
   const response = await request(app).get('/version');
-  expect(response.status).toBe(200); // Check the status too!
+  expect(response.status).toBe(200);
   expect(response.text).toContain("API running");
 });
 
-const fakeData = [
-  { 
-    createdAt: new Date().toISOString(), // Right now (Recent)
-    value: '10' 
-  },
-  { 
-    createdAt: '2000-01-01T00:00:00Z',   // Ancient history (Old)
-    value: '100' 
-  }
-];
-
-// fetch.mockResolvedValue({
-//   json: () => Promise.resolve(fakeData)
-// });
-
 test('GET /temperature calculates average', async () => {
+  const fakeData = [
+    { sensors: [{ lastMeasurement: { value: '10' } }] },
+    { sensors: [{ lastMeasurement: { value: '20' } }] }
+  ];
 
-  // 1. ARRANGE: Tell fetch what to return
-
-  fetch.mockResolvedValue({
-
+  global.fetch.mockResolvedValue({
+    ok: true,
+    status: 200,
     json: () => Promise.resolve(fakeData)
-
   });
 
+  const response = await request(app).get('/temperature');
 
-
-  // 2. ACT: Ask the app for the page (MISSING!)
-
-  const response = await request(app).get('/temperature')
-
-
-
-  // 3. ASSERT: Check the answer
-
-  expect(response.text).toContain("10");
-
+  expect(response.status).toBe(200);
+  // Average of 10 and 20 is 15
+  expect(response.body.averageTemp).toBe(15);
 });
-
