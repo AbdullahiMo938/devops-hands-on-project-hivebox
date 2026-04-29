@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: hivebox
-        image: hive-box:v3
+        image: hivebox:v5
         # 🔑 This tells KinD to use the image you loaded locally
         imagePullPolicy: IfNotPresent 
         ports:
