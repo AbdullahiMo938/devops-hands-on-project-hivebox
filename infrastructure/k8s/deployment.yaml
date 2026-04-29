@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hive-box-hivebox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hivebox
+  template:
+    metadata:
+      labels:
+        app: hivebox
+    spec:
+      containers:
+      - name: hivebox
+        image: hive-box:v3
+        # 🔑 This tells KinD to use the image you loaded locally
+        imagePullPolicy: IfNotPresent 
+        ports:
+        - containerPort: 3000
+        env:
+        # 🔌 Tells your app how to find the Valkey/Redis service
+        - name: REDIS_HOST
+          value: "valkey-service" 
+        # 🗄️ Standardized S3 endpoint for your MinIO service
+        - name: S3_ENDPOINT
+          value: "http://minio-service:9000"
+        readinessProbe:
+          httpGet:
+            path: /version
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10

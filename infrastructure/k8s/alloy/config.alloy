@@ -1,0 +1,15 @@
+// 1. Scrape the /metrics endpoint from your Node.js app
+prometheus.scrape "hivebox_metrics" {
+  targets = [
+    { "__address__" = "localhost:3000" },
+  ]
+  
+  forward_to = [prometheus.relabel.debug_view.receiver]
+  
+  scrape_interval = "10s"
+}
+
+// 2. A "dummy" step so we can inspect the data in the UI
+prometheus.relabel "debug_view" {
+  forward_to = [] // We aren't sending it anywhere!
+}
