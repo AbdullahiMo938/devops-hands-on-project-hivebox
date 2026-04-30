@@ -3,11 +3,11 @@ replicaCount: 2
 image:
   repository: ghcr.io/abdullahimo938/hivebox
   pullPolicy: Always
-  tag: "latest"
+  tag: "v2"
 
 service:
   type: ClusterIP
-  port: 80
+  port: 3000
 
 probes:
   readinessPath: /readyz #  readiness probe setting!

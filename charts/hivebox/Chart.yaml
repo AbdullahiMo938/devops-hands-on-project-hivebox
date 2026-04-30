@@ -1,6 +1,6 @@
 apiVersion : v2
 name: hivebox
-description: A helm chart for my Node.js App
+description: A helm chart for my Hivebox API
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
