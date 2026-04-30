@@ -33,7 +33,7 @@ build/
 out/
 
 # =========================
-# Binaries (IMPORTANT for your issue)
+# Binaries 
 # =========================
 bin/
 *.exe
@@ -41,7 +41,7 @@ bin/
 *.out
 
 # =========================
-# Kubernetes / DevOps artifacts (optional but common)
+# Kubernetes / DevOps artifacts 
 # =========================
 *.kubeconfig
 *.tfstate
