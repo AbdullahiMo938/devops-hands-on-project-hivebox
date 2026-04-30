@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: ["main"]
 
-env:
-  AWS_REGION: eu-west-2
-  CLUSTER_NAME: hivebox-london-cluster
-  IMAGE_NAME: ghcr.io/${{ github.repository }}/hivebox
-
 jobs:
 
 # -------------------------
@@ -18,17 +13,6 @@ jobs:
 # -------------------------
   build-and-test:
     runs-on: ubuntu-latest
-
-    services:
-      valkey:
-        image: valkey/valkey:latest
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "valkey-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +40,7 @@ jobs:
 
 
 # -------------------------
-# 2. TERRAFORM (EKS INFRA)
+# 2. TERRAFORM (INFRA)
 # -------------------------
   terraform:
     needs: build-and-test
@@ -75,7 +59,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: eu-west-2
 
       - name: Terraform Init
         working-directory: terraform
@@ -121,7 +105,8 @@ jobs:
 
       - name: Tag & Push image
         run: |
-          IMAGE_ID=${IMAGE_NAME,,}
+          IMAGE_ID=ghcr.io/${{ github.repository }}/hivebox
+          IMAGE_ID=${IMAGE_ID,,}
 
           docker tag hivebox:${{ github.sha }} $IMAGE_ID:${{ steps.version.outputs.VERSION }}
           docker tag hivebox:${{ github.sha }} $IMAGE_ID:latest
@@ -145,10 +130,10 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: eu-west-2
 
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+        run: aws eks update-kubeconfig --region eu-west-2 --name hivebox-london-cluster
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
@@ -156,15 +141,21 @@ jobs:
       - name: Deploy with Helm
         run: |
           helm upgrade --install hivebox ./charts/hivebox \
-            --set image.repository=${IMAGE_NAME,,} \
+            --set image.repository=ghcr.io/${{ github.repository }}/hivebox \
             --set image.tag=${{ github.sha }}
+
+
+# -------------------------
+# 5. OPENSSF SCORECARD
+# -------------------------
   scorecard:
     runs-on: ubuntu-latest
+
     permissions:
-      # specific permissions needed for scorecard
       security-events: write
       id-token: write
       contents: read
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -177,4 +168,5 @@ jobs:
           results_file: results.sarif
           results_format: sarif
           publish_results: true
-
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
