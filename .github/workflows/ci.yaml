@@ -8,14 +8,42 @@ on:
 
 jobs:
 
-# -------------------------
+# ------------------------------------------------
 # 1. BUILD + TEST
-# -------------------------
+# ------------------------------------------------
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      valkey:
+        image: valkey/valkey:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # -----------------------------
+      # CACHE NODE MODULES
+      # -----------------------------
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Install dependencies
         run: npm ci
@@ -23,36 +51,55 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test
+      - name: Run tests
         run: npm test
 
+      # -----------------------------
+      # BUILD IMAGE
+      # -----------------------------
       - name: Build Docker image
         run: docker build -t hivebox:${{ github.sha }} .
 
+      # Save image for next job
       - name: Save Docker image
         run: docker save -o hivebox.tar hivebox:${{ github.sha }}
 
-      - name: Upload artifact
+      - name: Upload Docker artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image
           path: hivebox.tar
 
 
-# -------------------------
-# 2. TERRAFORM (INFRA)
-# -------------------------
+# ------------------------------------------------
+# 2. TERRAFORM (ONLY WHEN TF CHANGES)
+# ------------------------------------------------
   terraform:
     needs: build-and-test
     runs-on: ubuntu-latest
 
+    # ONLY RUN IF TERRAFORM FILES CHANGED
+    if: contains(github.event.head_commit.message, 'terraform') || github.event_name == 'workflow_dispatch'
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
+
+      # -----------------------------
+      # CACHE TERRAFORM
+      # -----------------------------
+      - name: Cache Terraform
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            terraform/.terraform
+          key: ${{ runner.os }}-terraform-${{ hashFiles('terraform/**/*.tf') }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -65,14 +112,22 @@ jobs:
         working-directory: terraform
         run: terraform init
 
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan
+
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve
 
 
-# -------------------------
+# ------------------------------------------------
 # 3. PUSH IMAGE TO GHCR
-# -------------------------
+# ------------------------------------------------
   release-to-registry:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -82,13 +137,10 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Get version
-        id: version
-        run: echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
-
-      - name: Download image artifact
+      - name: Download Docker image artifact
         uses: actions/download-artifact@v4
         with:
           name: docker-image
@@ -103,27 +155,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag & Push image
+      # -----------------------------
+      # PUSH TAGS
+      # -----------------------------
+      - name: Push Docker image
         run: |
           IMAGE_ID=ghcr.io/${{ github.repository }}/hivebox
           IMAGE_ID=${IMAGE_ID,,}
 
-          docker tag hivebox:${{ github.sha }} $IMAGE_ID:${{ steps.version.outputs.VERSION }}
+          docker tag hivebox:${{ github.sha }} $IMAGE_ID:${{ github.sha }}
           docker tag hivebox:${{ github.sha }} $IMAGE_ID:latest
 
-          docker push $IMAGE_ID:${{ steps.version.outputs.VERSION }}
+          docker push $IMAGE_ID:${{ github.sha }}
           docker push $IMAGE_ID:latest
 
 
-# -------------------------
-# 4. DEPLOY TO EKS (HELM)
-# -------------------------
+# ------------------------------------------------
+# 4. DEPLOY TO EKS
+# ------------------------------------------------
   deploy:
-    needs: [terraform, release-to-registry]
+    needs: [release-to-registry]
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -138,16 +194,33 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
+      # -----------------------------
+      # DEPLOY
+      # -----------------------------
       - name: Deploy with Helm
         run: |
           helm upgrade --install hivebox ./charts/hivebox \
             --set image.repository=ghcr.io/${{ github.repository }}/hivebox \
-            --set image.tag=${{ github.sha }}
+            --set image.tag=${{ github.sha }} \
+            --wait \
+            --timeout 5m \
+            --atomic
+
+      # -----------------------------
+      # DEBUGGING IF FAILED
+      # -----------------------------
+      - name: Kubernetes Debugging
+        if: failure()
+        run: |
+          kubectl get nodes
+          kubectl get pods -A
+          kubectl describe pods
+          kubectl get events --sort-by=.metadata.creationTimestamp
 
 
-# -------------------------
+# ------------------------------------------------
 # 5. OPENSSF SCORECARD
-# -------------------------
+# ------------------------------------------------
   scorecard:
     runs-on: ubuntu-latest
 
