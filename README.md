@@ -7,7 +7,7 @@ It demonstrates modern backend engineering + DevOps practices, including contain
 
 Architecture diagram:
 
-![HiveBox Architecture](./images/hivebox diagram.png)
+![HiveBox Architecture](./images/hivebox-diagram.png)
 
 ---
 
