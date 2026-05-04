@@ -4,8 +4,10 @@ HiveBox is a cloud-native Node.js application that aggregates global environment
 
 It demonstrates modern backend engineering + DevOps practices, including containerisation, Kubernetes deployment, CI/CD automation, observability, and AWS cloud infrastructure.
 
-📌 Architecture diagram:  
-![HiveBox Architecture](images/hivebox-diagram.png)
+
+Architecture diagram:
+
+![HiveBox Architecture](./images/hivebox-diagram.png)
 
 ---
 
