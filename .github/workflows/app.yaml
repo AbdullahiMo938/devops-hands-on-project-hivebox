@@ -1,56 +1,28 @@
-name: CI-CD Pipeline
+name: App CI-CD
 
 on:
   push:
     branches: ["main"]
+    paths-ignore:
+      - 'terraform/**'
 
   pull_request:
     branches: ["main"]
+    paths-ignore:
+      - 'terraform/**'
 
 jobs:
 
-  # -------------------------
-  # TERRAFORM (INFRA CHECK)
-  # -------------------------
-  terraform:
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./terraform
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.6
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-2
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Plan
-        run: terraform plan
-
-
-  # -------------------------
-  # BUILD + TEST
-  # -------------------------
+# -------------------------
+# 1. BUILD + TEST
+# -------------------------
   build-and-test:
-    needs: terraform
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
+      # Node setup
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -60,15 +32,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Lint
       - name: Lint
         run: npm run lint
 
+      # Tests
       - name: Test
         run: npm test
 
+      # Build Docker image
       - name: Build Docker image
         run: docker build -t hivebox:${{ github.sha }} .
 
+      # Save image as artifact
       - name: Save Docker image
         run: docker save -o hivebox.tar hivebox:${{ github.sha }}
 
@@ -79,36 +55,33 @@ jobs:
           path: hivebox.tar
 
 
-  # -------------------------
-  # EKS CHECK
-  # -------------------------
-  eks-check:
-    needs: build-and-test
+# -------------------------
+# 2. SECURITY CHECK
+# -------------------------
+  scorecard:
     runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: OpenSSF Scorecard
+        uses: ossf/scorecard-action@v2.4.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-2
-
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig \
-            --region eu-west-2 \
-            --name hivebox-london-cluster
-
-      - name: Verify cluster connection
-        run: kubectl get nodes
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
-  # -------------------------
-  # PUSH IMAGE TO GHCR
-  # -------------------------
+# -------------------------
+# 3. PUSH IMAGE
+# -------------------------
   release-to-registry:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -151,16 +124,17 @@ jobs:
           docker push $IMAGE_ID:latest
 
 
-  # -------------------------
-  # DEPLOY TO EKS (HELM)
-  # -------------------------
+# -------------------------
+# 4. DEPLOY TO EKS
+# -------------------------
   deploy:
-    needs: [eks-check, release-to-registry]
+    needs: release-to-registry
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
+      # AWS login
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -168,41 +142,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-2
 
+      # Connect to EKS
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig \
             --region eu-west-2 \
             --name hivebox-london-cluster
 
+      # Helm setup
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
+      # Deploy
       - name: Deploy with Helm
         run: |
           helm upgrade --install hivebox ./charts/hivebox \
             --set image.repository=ghcr.io/${{ github.repository }}/hivebox \
             --set image.tag=${{ github.sha }}
-
-
-  # -------------------------
-  # OPENSSF SCORECARD
-  # -------------------------
-  scorecard:
-    runs-on: ubuntu-latest
-
-    permissions:
-      security-events: write
-      id-token: write
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: OpenSSF Scorecard
-        uses: ossf/scorecard-action@v2.4.0
-        with:
-          results_file: results.sarif
-          results_format: sarif
-          publish_results: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
