@@ -7,13 +7,13 @@ module "vpc" {
 
   azs = ["eu-west-2a", "eu-west-2b"]
 
-  
+
   public_subnets = [
     "10.0.101.0/24",
     "10.0.102.0/24"
   ]
 
-  
+
   enable_nat_gateway = false
 
   # Required for EKS nodes to get public IPs
@@ -21,7 +21,7 @@ module "vpc" {
 
 
   public_subnet_tags = {
-    "kubernetes.io/role/elb" = 1
+    "kubernetes.io/role/elb"                       = 1
     "kubernetes.io/cluster/hivebox-london-cluster" = "shared"
   }
 
