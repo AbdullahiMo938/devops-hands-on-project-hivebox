@@ -59,7 +59,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -refresh=false
+        run: terraform plan -refresh=false -var="image_tag=${{ github.sha }}"
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
